@@ -1,3 +1,4 @@
+# .github/workflows/build_cpp_cpu.yml
 name: Build MediaPipe C++ CPU (Windows)
 
 on:
@@ -24,7 +25,7 @@ jobs:
         architecture: 'x64'
     
     - name: Setup Bazel
-      uses: bazelbuild/setup-bazelisk@v2
+      uses: bazelbuild/setup-bazelisk@v3  # ✅ 已升级到v3
     
     - name: Configure Bazel for Windows
       shell: cmd
@@ -67,7 +68,7 @@ jobs:
         7z a -tzip mediapipe_windows_cpu.zip artifacts
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4  # ✅ 已修正
+      uses: actions/upload-artifact@v4
       with:
         name: mediapipe-windows-cpu
         path: mediapipe_windows_cpu.zip
