@@ -1,0 +1,74 @@
+name: Build MediaPipe C++ CPU (Windows)
+
+on:
+  workflow_dispatch:  # 手动触发
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build_cpp_cpu.yml'
+
+jobs:
+  build-windows-cpu:
+    runs-on: windows-2019  # GitHub官方Windows环境
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive  # 递归下载子模块
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        architecture: 'x64'
+    
+    - name: Setup Bazel
+      uses: bazelbuild/setup-bazelisk@v2
+    
+    - name: Configure Bazel for Windows
+      shell: cmd
+      run: |
+        echo common --noenable_bzlmod >> .bazelrc
+        echo build --define MEDIAPIPE_DISABLE_GPU=1 >> .bazelrc
+        echo build --action_env PYTHON_BIN_PATH=C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe >> .bazelrc
+        echo build --action_env BAZEL_VS="C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise" >> .bazelrc
+        echo build --action_env BAZEL_VC="C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC" >> .bazelrc
+    
+    - name: Build Hello World
+      shell: cmd
+      run: |
+        bazel --version
+        bazel build -c opt --define MEDIAPIPE_DISABLE_GPU=1 mediapipe/examples/desktop/hello_world
+    
+    - name: Build Face Mesh
+      shell: cmd
+      run: |
+        bazel build -c opt --define MEDIAPIPE_DISABLE_GPU=1 mediapipe/examples/desktop/face_mesh:face_mesh_cpu
+    
+    - name: Build Pose Tracking
+      shell: cmd
+      run: |
+        bazel build -c opt --define MEDIAPIPE_DISABLE_GPU=1 mediapipe/examples/desktop/pose_tracking:pose_tracking_cpu
+    
+    - name: Build Selfie Segmentation
+      shell: cmd
+      run: |
+        bazel build -c opt --define MEDIAPIPE_DISABLE_GPU=1 mediapipe/examples/desktop/selfie_segmentation:selfie_segmentation_cpu
+    
+    - name: Zip artifacts
+      shell: cmd
+      run: |
+        mkdir artifacts
+        xcopy /E /I bazel-bin\mediapipe\examples\desktop artifacts\examples
+        xcopy /E /I mediapipe\framework artifacts\include\framework
+        xcopy /E /I mediapipe\graphs artifacts\include\graphs
+        xcopy /E /I mediapipe\modules artifacts\include\modules
+        7z a -tzip mediapipe_windows_cpu.zip artifacts
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: mediapipe-windows-cpu
+        path: mediapipe_windows_cpu.zip
+        retention-days: 7
